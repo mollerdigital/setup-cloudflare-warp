@@ -1,0 +1,58 @@
+name: 'Setup Cloudflare Warp'
+description: 'Sets up and caches the Cloudflare Warp client in your GitHub Actions workflow.'
+inputs:
+  version:
+    description: 'The version of Cloudflare Warp to install'
+  organization:
+    description: 'The name of your Zero Trust organization'
+    required: true
+  auth_client_id:
+    description: 'The service token client id'
+    required: true
+  auth_client_secret:
+    description: 'The service token client secret'
+    required: true
+branding:
+  icon: 'cloud'
+  color: 'orange'
+runs:
+  using: "composite"
+  steps:
+    - name: Restore warp apt package cache
+      id: restore-warp-apt-cache
+      uses: actions/cache/restore@v3
+      with:
+        path: /tmp/warp-apt-cache-tar
+        key: ${{ runner.os }}-warp-apt
+
+    - id: configure-apt-cache
+      run: |
+        mkdir -p /tmp/warp-apt-cache-tar
+        sudo mkdir -p /tmp/warp-apt-cache/partial
+        test ! -f /tmp/warp-apt-cache-tar/cache.tar || sudo tar -xf /tmp/warp-apt-cache-tar/cache.tar -C /tmp/warp-apt-cache/
+        cat <<EOF | sudo tee /etc/apt/apt.conf.d/99cloudflare-warp-cache
+        Dir::Cache::Archives /tmp/warp-apt-cache/;
+        Dir::Cache /tmp/warp-apt-cache/;
+        EOF
+      shell: bash
+
+    - uses: mollerdigital/setup-cloudflare-warp@cached-apt-install
+      with:
+        organization: ${{ inputs.organization }}
+        auth_client_id: ${{ inputs.auth_client_id }}
+        auth_client_secret: ${{ inputs.auth_client_secret }}
+
+    - id: clean-configure-apt-cache
+      run: |
+        sudo rm /etc/apt/apt.conf.d/99cloudflare-warp-cache
+        sudo tar -cf cache.tar /tmp/warp-apt-cache/
+        sudo chown $UID cache.tar
+        mv cache.tar /tmp/warp-apt-cache-tar/cache.tar
+      shell: bash
+
+    - name: Save warp apt package cache
+      id: save-warp-apt-cache
+      uses: actions/cache/save@v3
+      with:
+        path: /tmp/warp-apt-cache-tar
+        key: ${{ steps.restore-warp-apt-cache.outputs.cache-primary-key }}
