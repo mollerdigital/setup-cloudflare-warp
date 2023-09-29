@@ -558,7 +558,7 @@ class OidcClient {
                 .catch(error => {
                 throw new Error(`Failed to get ID Token. \n 
         Error Code : ${error.statusCode}\n 
-        Error Message: ${error.result.message}`);
+        Error Message: ${error.message}`);
             });
             const id_token = (_a = res.result) === null || _a === void 0 ? void 0 : _a.value;
             if (!id_token) {
@@ -7174,7 +7174,7 @@ __nccwpck_require__.r(__webpack_exports__);
 // EXTERNAL MODULE: ./node_modules/@actions/core/lib/core.js
 var core = __nccwpck_require__(2186);
 // EXTERNAL MODULE: ./node_modules/@actions/exec/lib/exec.js
-var exec = __nccwpck_require__(1514);
+var lib_exec = __nccwpck_require__(1514);
 // EXTERNAL MODULE: external "fs"
 var external_fs_ = __nccwpck_require__(7147);
 // EXTERNAL MODULE: ./node_modules/@actions/tool-cache/lib/tool-cache.js
@@ -7189,7 +7189,7 @@ var backoff = __nccwpck_require__(3183);
 
 
 async function installLinuxClient(version) {
-  const gpgKeyPath = await tool_cache.downloadTool(
+  const gpgKeyPath = await tc.downloadTool(
     "https://pkg.cloudflareclient.com/pubkey.gpg",
   );
   await exec.exec(
@@ -7231,7 +7231,7 @@ async function writeLinuxConfiguration(
 </dict>
   `;
   await exec.exec("sudo mkdir -p /var/lib/cloudflare-warp/");
-  external_fs_.writeFileSync("/tmp/mdm.xml", config);
+  fs.writeFileSync("/tmp/mdm.xml", config);
   await exec.exec("sudo mv /tmp/mdm.xml /var/lib/cloudflare-warp/");
 }
 
@@ -7261,7 +7261,7 @@ async function writeMacOSConfiguration(
     </plist>
   `;
   await exec.exec('sudo mkdir -p "/Library/Managed Preferences/"');
-  external_fs_.writeFileSync("/tmp/com.cloudflare.warp.plist", config);
+  fs.writeFileSync("/tmp/com.cloudflare.warp.plist", config);
   await exec.exec("plutil -convert binary1 /tmp/com.cloudflare.warp.plist");
   await exec.exec(
     'sudo mv /tmp/com.cloudflare.warp.plist "/Library/Managed Preferences/"',
@@ -7277,7 +7277,7 @@ async function checkWARPRegistration(organization, is_registered) {
     },
   };
 
-  await exec.exec("warp-cli", ["--accept-tos", "settings"], options);
+  await lib_exec.exec("warp-cli", ["--accept-tos", "settings"], options);
 
   const registered = output.includes(`Organization: ${organization}`);
   if (is_registered && !registered) {
@@ -7296,7 +7296,7 @@ async function checkWARPConnected() {
     },
   };
 
-  await exec.exec("warp-cli", ["--accept-tos", "status"], options);
+  await lib_exec.exec("warp-cli", ["--accept-tos", "status"], options);
 
   if (!output.includes("Status update: Connected")) {
     throw new Error("WARP is not connected");
@@ -7318,29 +7318,29 @@ async function run() {
       required: true,
     });
 
-    switch (process.platform) {
-      case "linux":
-        await writeLinuxConfiguration(
-          organization,
-          auth_client_id,
-          auth_client_secret,
-        );
-        await installLinuxClient(version);
-        break;
-      case "darwin":
-        await writeMacOSConfiguration(
-          organization,
-          auth_client_id,
-          auth_client_secret,
-        );
-        await installMacOSClient(version);
-        break;
-    }
+    // switch (process.platform) {
+    //   case "linux":
+    //     await writeLinuxConfiguration(
+    //       organization,
+    //       auth_client_id,
+    //       auth_client_secret,
+    //     );
+    //     await installLinuxClient(version);
+    //     break;
+    //   case "darwin":
+    //     await writeMacOSConfiguration(
+    //       organization,
+    //       auth_client_id,
+    //       auth_client_secret,
+    //     );
+    //     await installMacOSClient(version);
+    //     break;
+    // }
 
     await (0,backoff.backOff)(() => checkWARPRegistration(organization, true), {
       numOfAttempts: 20,
     });
-    await exec.exec("warp-cli", ["--accept-tos", "connect"]);
+    await lib_exec.exec("warp-cli", ["--accept-tos", "connect"]);
     await (0,backoff.backOff)(() => checkWARPConnected(), { numOfAttempts: 20 });
   } catch (error) {
     core.error(error);
@@ -7352,10 +7352,10 @@ async function cleanup() {
   try {
     switch (process.platform) {
       case "linux":
-        await exec.exec("sudo rm /var/lib/cloudflare-warp/mdm.xml");
+        await lib_exec.exec("sudo rm /var/lib/cloudflare-warp/mdm.xml");
         break;
       case "darwin":
-        await exec.exec(
+        await lib_exec.exec(
           'sudo rm "/Library/Managed Preferences/com.cloudflare.warp.plist"',
         );
         break;
