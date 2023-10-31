@@ -29,6 +29,12 @@ with:
 - `auth_client_id` - (required) The service token client id.
 - `auth_client_secret` - (required) The service token client secret.
 
+## Troubleshooting
+- Unable to connect: `Status update: Unable to connect. Reason: Registration Missing` errors
+  - Check that the service token is valid and not expired.
+  - Check that the service token has the appropriate permissions to connect.
+  - Cancel and restart the job, sometimes there's an issue on Cloudflare's end that causes this error.
+
 ## Disclaimer
 This is not an official Cloudflare product nor is it endorsed by Cloudflare. This project is a fork from the `Boostport/setup-cloudflare-warp`.
 Most code is identical in this repository besides from the examples and some Møller specific setup that is required for this to work
